@@ -191,3 +191,41 @@ Config.JobList["tequilala"] = {
         }
     }
 }
+
+addItemsToFoodList({
+    ['burger-heartstopper'] = {
+        increase = math.random(35, 54)
+    },
+    ['burger-bleeder'] = {
+        increase = math.random(35, 54)
+    },
+    ['burger-moneyshot'] = {
+        increase = math.random(35, 54)
+    },
+    ['burger-torpedo'] = {
+        increase = math.random(35, 54)
+    },
+    ['burger-meatfree'] = {
+        increase = math.random(35, 54)
+    },
+    ['burger-fries'] = {
+        increase = math.random(35, 54)
+    },
+})
+addItemsToAlcoholList({
+    ['dusche-beer'] = {
+        increase = math.random(5,15)
+    },
+    ['stronzo-beer'] = {
+        increase = math.random(5,15)
+    },
+    ['am-beer'] = {
+        increase = math.random(5,15)
+    },
+    ['logger-beer'] = {
+        increase = math.random(5,15)
+    },
+    ['sunny-cocktail'] = {
+        increase = math.random(5,15)
+    },
+})

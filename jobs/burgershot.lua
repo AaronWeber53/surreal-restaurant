@@ -436,3 +436,55 @@ Config.JobList["burgershot"] = {
         }
     }
 }
+
+addItemsToFoodList({
+    ['burger-heartstopper'] = {
+        increase = math.random(35, 54)
+    },
+    ['burger-bleeder'] = {
+        increase = math.random(35, 54)
+    },
+    ['burger-moneyshot'] = {
+        increase = math.random(35, 54)
+    },
+    ['burger-torpedo'] = {
+        increase = math.random(35, 54)
+    },
+    ['burger-meatfree'] = {
+        increase = math.random(35, 54)
+    },
+    ['burger-fries'] = {
+        increase = math.random(35, 54)
+    },
+})
+addItemsToDrinkList({
+    ['burger-mshake'] = {
+        increase = math.random(40,50)
+    },
+    ['burger-softdrink'] = {
+        increase = math.random(40,50)
+    },
+})
+addItemsToCombinedList({
+    items = {
+        ['burger-murdermeal'] = {
+            ['burger-murdermeal'] = 1,
+            ['burger-heartstopper'] = 1,
+            ['burger-softdrink'] = 1,
+            ['burger-fries'] = 1,
+        },
+    },
+    extraFunc = function(func)
+        if randomToy < 4 then
+			--QBCore.Functions.Notify("No toy in Box Looool", "error")
+		elseif randomToy == 4 then
+            func("burger-toy1", 1)
+		elseif randomToy < 10 and randomToy > 4 then
+			--QBCore.Functions.Notify("No toy in Box Looool", "error")
+		elseif randomToy == 10 then
+            func("burger-toy2", 1)
+		else
+            --QBCore.Functions.Notify("No toy in Box Looool", "error")
+        end
+    end
+})

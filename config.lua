@@ -1,5 +1,39 @@
 Config = {}
 Config.JobList = {}
+Config.ClosedBlipColor = 40
+Config.FoodItems = {}
+
+-- Resuable code for the jobs setup
+addItemsToFoodList = function(list)
+    for key, value in pairs(list) do
+        Config.FoodItems[key] = value
+    end
+end
+
+Config.DrinkItems = {}
+
+addItemsToDrinkList = function(list)
+    for key, value in pairs(list) do
+        Config.DrinkItems[key] = value
+    end
+end
+
+
+Config.AlcoholItems = {}
+
+addItemsToAlcoholList = function(list)
+    for key, value in pairs(list) do
+        Config.AlcoholItems[key] = value
+    end
+end
+
+Config.CombinedItems = {}
+
+addItemsToCombinedList = function(list)
+    for key, value in pairs(list) do
+        Config.CombinedItems[key] = value
+    end
+end
 
 recipeMenuEntry = function (header, txt, recipe)
     return {

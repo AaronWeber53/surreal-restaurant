@@ -4,13 +4,55 @@ local currentjob = nil
 PlayerJob = {}
 local onDuty = false
 isLoggedIn = true
-
+local restaurantBlips = {}
+local openRestaurants = {}
 --#region Player logic
+
+local AdjustRestaurantBlips = function(restaurants) 
+    for k, v in pairs(restaurants) do
+        local info = Config.JobList[k]
+        local blip = nil
+        if restaurantBlips[k] ~= nil then
+            blip = restaurantBlips[k]
+        else
+            blip = AddBlipForCoord(info.blip.coords.x, info.blip.coords.y, info.blip.coords.z)
+            SetBlipSprite (blip, info.blip.sprite)
+            SetBlipDisplay(blip, 4)
+            SetBlipScale(blip, (info.blip.scale or 0.5))
+            SetBlipAsShortRange(blip, true)
+        end
+        
+        if v == true then
+            SetBlipColour(blip, info.blip.colour)
+            BeginTextCommandSetBlipName("STRING")
+            AddTextComponentSubstringPlayerName(info.name.." - OPEN")
+            EndTextCommandSetBlipName(blip)
+
+        else
+            print('attempt close restaurant')
+            SetBlipColour(blip, Config.ClosedBlipColor)
+            BeginTextCommandSetBlipName("STRING")
+            AddTextComponentSubstringPlayerName(info.name.." - CLOSED")
+            EndTextCommandSetBlipName(blip)
+        end
+        restaurantBlips[k] = blip
+        openRestaurants[k] = v
+    end
+
+end
+
+RegisterNetEvent("surreal-restaurant:setRestaurantStatuses", function(restaurants)
+    AdjustRestaurantBlips(restaurants)
+end)
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded')
 AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
     QBCore.Functions.GetPlayerData(function(PlayerData)
         PlayerJob = PlayerData.job
         SetCurrentJobConfig()
+    end)
+
+    QBCore.Functions.TriggerCallback('surreal-restaurant:server:get:openStatus', function(restaurants)  
+        AdjustRestaurantBlips(restaurants)
     end)
 end)
 
@@ -26,8 +68,8 @@ AddEventHandler('QBCore:Client:SetDuty', function(duty)
     onDuty = duty
 end)
 
-RegisterNetEvent("qb-restaurant:ToggleDuty")
-AddEventHandler("qb-restaurant:ToggleDuty", function()
+RegisterNetEvent("surreal-restaurant:ToggleDuty")
+AddEventHandler("surreal-restaurant:ToggleDuty", function()
     TriggerServerEvent("QBCore:ToggleDuty")
 end)
 
@@ -62,8 +104,9 @@ Citizen.CreateThread(function()
                                 if #(pos - vector3(coords.x, coords.y, coords.z)) < v.closedistance then
                                     DrawText3D(coords.x, coords.y, coords.z, v.closetext)
                                     if IsControlJustReleased(0, 38) then
-                                        TriggerEvent("qb-restaurant:kitchentask", k)
+                                        TriggerEvent("surreal-restaurant:kitchentask", k)
                                     end
+                                    sleep = 2
                                 elseif #(pos - vector3(coords.x, coords.y, coords.z)) < v.farDistance then
                                     sleep = 5
                                     DrawText3D(coords.x, coords.y, coords.z, v.fartext)
@@ -82,7 +125,7 @@ Citizen.CreateThread(function()
                                     sleep = 5
                                     DrawText3D(v.x, v.y, v.z, "~g~E~w~ -  Cash Register")
                                     if IsControlJustReleased(0, 38) then
-                                        TriggerEvent("qb-restaurant:bill")
+                                        TriggerEvent("surreal-restaurant:bill")
                                     end
                                 elseif #(pos - vector3(v.x, v.y, v.z)) < 2.5 then
                                     sleep = 5
@@ -102,7 +145,7 @@ Citizen.CreateThread(function()
                                     sleep = 5
                                     DrawText3D(v.x, v.y, v.z, "~g~E~w~ -  Garage")
                                     if IsControlJustReleased(0, 38) then
-                                        TriggerEvent("qb-restaurant:restaurantgarage", k)
+                                        TriggerEvent("surreal-restaurant:restaurantgarage", k)
                                     end
                                 elseif #(pos - vector3(v.x, v.y, v.z)) < 2.5 then
                                     sleep = 5
@@ -122,7 +165,7 @@ Citizen.CreateThread(function()
                                         sleep = 5
                                         DrawText3D(v.x, v.y, v.z, "~g~E~w~ -  Tray")
                                         if IsControlJustReleased(0, 38) then
-                                            TriggerEvent("qb-restaurant:tray", index)
+                                            TriggerEvent("surreal-restaurant:tray", index)
                                         end
                                     elseif #(pos - vector3(v.x, v.y, v.z)) < 2.5 then
                                         sleep = 5
@@ -161,7 +204,7 @@ Citizen.CreateThread(function()
                                     sleep = 5
                                     DrawText3D(v.x, v.y, v.z, "~g~E~w~ -  Open Storage")
                                     if IsControlJustReleased(0, 38) then
-                                        TriggerEvent("qb-restaurant:storage", { name = currentjob.."storage"..k})
+                                        TriggerEvent("surreal-restaurant:storage", { name = currentjob.."storage"..k})
                                     end
                                 elseif #(pos - vector3(v.x, v.y, v.z)) < 2.5 then
                                     sleep = 5
@@ -213,14 +256,14 @@ RegisterNetEvent('qb-menu:fridgemenu', function(fridgeid)
             header = "• Order Items",
             txt = "Order New Ingredients!",
             params = {
-                event = "qb-restaurant:shop"
+                event = "surreal-restaurant:shop"
             }
         },
         {
             header = "• Open Fridge",
             txt = "See what you have in storage",
             params = {
-                event = "qb-restaurant:storage",
+                event = "surreal-restaurant:storage",
                 args = {
                     name = currentjob.."fridge"..fridgeid
                 }
@@ -236,8 +279,8 @@ RegisterNetEvent('qb-menu:fridgemenu', function(fridgeid)
     })
 end)
 
-RegisterNetEvent("qb-restaurant:storage")
-AddEventHandler("qb-restaurant:storage", function(data)
+RegisterNetEvent("surreal-restaurant:storage")
+AddEventHandler("surreal-restaurant:storage", function(data)
     TriggerEvent("inventory:client:SetCurrentStash", data.name)
     TriggerServerEvent("inventory:server:OpenInventory", "stash", data.name, {
         maxweight = 250000,
@@ -245,19 +288,19 @@ AddEventHandler("qb-restaurant:storage", function(data)
     })
 end)
 
-RegisterNetEvent("qb-restaurant:shop")
-AddEventHandler("qb-restaurant:shop", function()
+RegisterNetEvent("surreal-restaurant:shop")
+AddEventHandler("surreal-restaurant:shop", function()
     TriggerServerEvent("inventory:server:OpenInventory", "shop", currentjob, CurrentConfigJob['items'])
 end)
 --#endregion storage Logic
 
 --#region kitchen Logic
 
-RegisterNetEvent("qb-restaurant:kitchentask", function(taskName)
+RegisterNetEvent("surreal-restaurant:kitchentask", function(taskName)
     local task = CurrentConfigJob["kitchentask"][taskName]
     if task ~= nil then
         if task.recipe ~= nil then
-            TriggerEvent("qb-restaurant:recipe", task.recipe)
+            TriggerEvent("surreal-restaurant:recipe", task.recipe)
         elseif task['menu'] ~= nil then
             local menulist = {}
             for index, value in pairs(task['menu']) do
@@ -272,7 +315,7 @@ RegisterNetEvent("qb-restaurant:kitchentask", function(taskName)
                     listitem.params = value.params
                 else
                     listitem.params = {
-                        event = "qb-restaurant:recipe",
+                        event = "surreal-restaurant:recipe",
                         args = {
                             recipeName = value.recipe
                         }
@@ -286,14 +329,14 @@ RegisterNetEvent("qb-restaurant:kitchentask", function(taskName)
 end)
 
 
-RegisterNetEvent("qb-restaurant:recipe", function(data)
+RegisterNetEvent("surreal-restaurant:recipe", function(data)
     local recipeName = data
     if type(recipeName) == "table" then
         recipeName = data.recipeName
     end
     local recipe = CurrentConfigJob["recipes"][recipeName]
     if onDuty and recipe ~= nil then
-    	QBCore.Functions.TriggerCallback('qb-restaurant:server:get:ingredients', function(HasItems)  
+    	QBCore.Functions.TriggerCallback('surreal-restaurant:server:get:ingredients', function(HasItems)  
     		if HasItems then
 				QBCore.Functions.Progressbar("pickup_sla", recipe.cooklabel, recipe.cooktime * 1000, false, true, {
 					disableMovement = true,
@@ -301,13 +344,7 @@ RegisterNetEvent("qb-restaurant:recipe", function(data)
 					disableMouse = false,
 					disableCombat = true,
 				}, recipe.anim, recipe.prop, recipe.prop2, function() -- Done
-                    for i, item in pairs(recipe['useditems']) do
-                        TriggerServerEvent('QBCore:Server:RemoveItem', item.name, item.quantity)
-                    end
-                    for i, item in pairs(recipe['receiveditems']) do
-                        TriggerServerEvent('QBCore:Server:AddItem', item.name, item.quantity)
-                        TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[item.name], "add")
-                    end
+                    TriggerServerEvent('surreal-restaurant:server:finishrecipe', recipeName)
                    	QBCore.Functions.Notify(recipe.finishmessage, "success")
 				end, function()
 					QBCore.Functions.Notify("Cancelled..", "error")
@@ -341,7 +378,7 @@ function DrawText3D(x, y, z, text)
 end
 
 
-RegisterNetEvent("qb-restaurant:bill", function()
+RegisterNetEvent("surreal-restaurant:bill", function()
     local dialog = exports['qb-input']:ShowInput({
         header = "Till",
         submitText = "Bill Person",
@@ -362,12 +399,12 @@ RegisterNetEvent("qb-restaurant:bill", function()
     })
     if dialog then
         if not dialog.id or not dialog.amount then return end
-        TriggerServerEvent("qb-restaurant:bill:player", dialog.id, dialog.amount, currentjob)
+        TriggerServerEvent("surreal-restaurant:bill:player", dialog.id, dialog.amount, currentjob)
     end
 end)
 
 RegisterNetEvent('qb-menu:restaurantDutyMenu', function(data)
-    exports['qb-menu']:openMenu({
+    local menu = {
         { 
             header = "| Clocking in/Off work |",
             isMenuHeader = true
@@ -376,21 +413,47 @@ RegisterNetEvent('qb-menu:restaurantDutyMenu', function(data)
             header = "• Sign In/Off",
             txt = "",
             params = {
-                event = "qb-restaurant:ToggleDuty",
+                event = "surreal-restaurant:ToggleDuty",
             }
         },
-        {
-            header = "• Close Menu",
+    }
+
+
+    if openRestaurants[currentjob] then
+        menu[#menu+1] = {
+            header = "• Close Restaurant",
             txt = "", 
             params = { 
-                event = "qb-menu:client:closeMenu"
+                isServer = true,
+                event = "surreal-restaurant:server:ToggleRestaurantStatus",
+                args = false
             }
-        },
-    })
+        }
+    else
+        menu[#menu+1] = {
+            header = "• Open Restaurant",
+            txt = "", 
+            params = { 
+                isServer = true,
+                event = "surreal-restaurant:server:ToggleRestaurantStatus",
+                args = true
+            }
+        }
+    end
+
+    menu[#menu+1] = {
+        header = "• Close Menu",
+        txt = "", 
+        params = { 
+            event = "qb-menu:client:closeMenu"
+        }
+    }
+
+    exports['qb-menu']:openMenu(menu)
 end)
 
-RegisterNetEvent("qb-restaurant:tray")
-AddEventHandler("qb-restaurant:tray", function(tray)
+RegisterNetEvent("surreal-restaurant:tray")
+AddEventHandler("surreal-restaurant:tray", function(tray)
     TriggerEvent("inventory:client:SetCurrentStash", tray)
     TriggerServerEvent("inventory:server:OpenInventory", "stash", tray, {
         maxweight = 10000,
@@ -401,8 +464,8 @@ end)
 
 --#region Garage Logic
 
-RegisterNetEvent('qb-restaurant:garage')
-AddEventHandler('qb-restaurant:garage', function(bs)
+RegisterNetEvent('surreal-restaurant:garage')
+AddEventHandler('surreal-restaurant:garage', function(bs)
     local vehicle = bs.vehicle
     if CurrentConfigJob ~= nil then
         local coords = CurrentConfigJob['garage'][bs.garageindex]
@@ -419,8 +482,8 @@ AddEventHandler('qb-restaurant:garage', function(bs)
     end
 end)
 
-RegisterNetEvent('qb-restaurant:storecar')
-AddEventHandler('qb-restaurant:storecar', function()
+RegisterNetEvent('surreal-restaurant:storecar')
+AddEventHandler('surreal-restaurant:storecar', function()
     QBCore.Functions.Notify('Work Vehicle Stored!')
     local car = GetVehiclePedIsIn(PlayerPedId(),true)
     NetworkFadeOutEntity(car, true,false)
@@ -428,7 +491,7 @@ AddEventHandler('qb-restaurant:storecar', function()
     QBCore.Functions.DeleteVehicle(car)
 end)
 
-RegisterNetEvent('qb-restaurant:restaurantgarage', function(garageindex)
+RegisterNetEvent('surreal-restaurant:restaurantgarage', function(garageindex)
     local menulist = {}
     table.insert(menulist, {
         header = "| "..CurrentConfigJob.name.." Garage |",
@@ -440,7 +503,7 @@ RegisterNetEvent('qb-restaurant:restaurantgarage', function(garageindex)
         listitem.header = "• "..value.name
         listitem.txt = value.description        
         listitem.params = {
-            event = "qb-restaurant:garage",
+            event = "surreal-restaurant:garage",
             args = {
                 vehicle = index,
                 garageindex = garageindex
@@ -453,7 +516,7 @@ RegisterNetEvent('qb-restaurant:restaurantgarage', function(garageindex)
         header = "• Store Vehicle",
         txt = "Store Vehicle Inside Garage",
         params = {
-            event = "qb-restaurant:storecar",
+            event = "surreal-restaurant:storecar",
             args = {
             }
         }
@@ -471,18 +534,22 @@ end)
 
 
 Citizen.CreateThread(function() -- Update to each config blip
-    for k, v in pairs(Config.JobList) do
-        if v.blip ~= nil then
-            RestaurantBlip = AddBlipForCoord(v.blip.coords.x, v.blip.coords.y, v.blip.coords.z)
-            SetBlipSprite (RestaurantBlip, v.blip.sprite)
-            SetBlipDisplay(RestaurantBlip, 4)
-            SetBlipScale  (RestaurantBlip, 0.5)
-            SetBlipAsShortRange(RestaurantBlip, true)
-            SetBlipColour(RestaurantBlip, v.blip.colour)
-            BeginTextCommandSetBlipName("STRING")
-            AddTextComponentSubstringPlayerName(v.name)
-            EndTextCommandSetBlipName(RestaurantBlip)
+    -- for k, v in pairs(Config.JobList) do
+    --     if v.blip ~= nil then
+    --         RestaurantBlip = AddBlipForCoord(v.blip.coords.x, v.blip.coords.y, v.blip.coords.z)
+    --         SetBlipSprite (RestaurantBlip, v.blip.sprite)
+    --         SetBlipDisplay(RestaurantBlip, 4)
+    --         SetBlipScale  (RestaurantBlip, 0.5)
+    --         SetBlipAsShortRange(RestaurantBlip, true)
+    --         SetBlipColour(RestaurantBlip, v.blip.colour)
+    --         BeginTextCommandSetBlipName("STRING")
+    --         AddTextComponentSubstringPlayerName(v.name)
+    --         EndTextCommandSetBlipName(RestaurantBlip)
         
-        end
-    end
+    --     end
+    -- end
+
+    QBCore.Functions.TriggerCallback('surreal-restaurant:server:get:openStatus', function(restaurants)  
+        AdjustRestaurantBlips(restaurants)
+    end)
 end)
